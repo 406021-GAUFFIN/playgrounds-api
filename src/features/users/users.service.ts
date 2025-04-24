@@ -1,39 +1,35 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { EmailService } from '../email/email.service';
-import * as bcrypt from 'bcrypt';
 import { Role } from '../../common/enum/role.enum';
-import { UpdateUserDto } from './dto/user.dto';
+import { UpdateUserDto, UserQueryDto } from './dto/user.dto';
+import { UserRepository } from './repositories/user.repository';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private userRepository: UserRepository,
     private emailService: EmailService,
   ) {}
 
   findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+    return this.userRepository.find();
   }
 
   findOne(id: number): Promise<User> {
-    return this.usersRepository.findOne({ where: { id } });
+    return this.userRepository.findOne({ where: { id } });
   }
 
   findByEmail(email: string): Promise<User> {
-    return this.usersRepository.findOne({ where: { email } });
+    return this.userRepository.findByEmail(email);
   }
 
   async create(user: Partial<User>): Promise<User> {
-    const newUser = this.usersRepository.create({
-      ...user,
-      emailValidatedAt: new Date(),
-    });
-    const savedUser = await this.usersRepository.save(newUser);
-
+    const savedUser = await this.userRepository.createUser(user);
+    await this.emailService.sendVerificationEmail(
+      savedUser.email,
+      savedUser.verificationCode,
+    );
     return savedUser;
   }
 
@@ -47,18 +43,12 @@ export class UsersService {
         'No tienes permiso para actualizar este usuario',
       );
     }
-
-    if (user.password) {
-      user.password = await bcrypt.hash(user.password, 10);
-    }
-
-    await this.usersRepository.update(id, user);
-    return this.findOne(id);
+    return this.userRepository.updateUser(id, user);
   }
 
   async register(user: Partial<User>): Promise<User> {
-    const newUser = this.usersRepository.create(user);
-    const savedUser = await this.usersRepository.save(newUser);
+    const newUser = this.userRepository.create(user);
+    const savedUser = await this.userRepository.save(newUser);
     await this.emailService.sendVerificationEmail(
       savedUser.email,
       savedUser.verificationCode,
@@ -74,7 +64,11 @@ export class UsersService {
 
     user.emailValidatedAt = new Date();
     user.verificationCode = null;
-    await this.usersRepository.save(user);
+    await this.userRepository.save(user);
     return true;
+  }
+
+  findUsersByFiltersPaginated(payload: UserQueryDto) {
+    return this.userRepository.findUsersByFiltersPaginated(payload);
   }
 }

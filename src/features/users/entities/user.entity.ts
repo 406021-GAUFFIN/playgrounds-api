@@ -56,15 +56,17 @@ export class User extends EntityBase {
   role: Role;
 
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
   }
 
   @BeforeInsert()
-  @BeforeUpdate()
   generateVerificationCode() {
-    this.verificationCode = Math.floor(
-      100000 + Math.random() * 900000,
-    ).toString();
+    if (!this.emailValidatedAt) {
+      this.verificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+    }
   }
 }

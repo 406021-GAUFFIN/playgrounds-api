@@ -7,11 +7,17 @@ import {
   UseGuards,
   Put,
   Request,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from 'src/features/auth/auth.module';
-import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  UserPaginationDto,
+  UserQueryDto,
+} from './dto/user.dto';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -31,10 +37,11 @@ import { RequestWithUser } from '../auth/types/request.user.type';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('/')
   @Roles(Role.ADMIN)
-  @Get()
-  findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  @ApiOkResponse({ type: UserPaginationDto })
+  async findAll(@Query() query: UserQueryDto) {
+    return this.usersService.findUsersByFiltersPaginated(query);
   }
 
   @Roles(Role.ADMIN)
