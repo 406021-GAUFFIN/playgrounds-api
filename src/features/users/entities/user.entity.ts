@@ -1,4 +1,4 @@
-import { Entity, Column, BeforeInsert } from 'typeorm';
+import { Entity, Column, BeforeInsert, BeforeUpdate } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
@@ -39,6 +39,12 @@ export class User extends EntityBase {
   })
   emailValidatedAt: Date;
 
+  @Column({
+    length: 6,
+    nullable: true,
+  })
+  verificationCode: string;
+
   @ApiProperty({
     description: 'Role of User',
     required: false,
@@ -52,5 +58,13 @@ export class User extends EntityBase {
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  generateVerificationCode() {
+    this.verificationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
   }
 }

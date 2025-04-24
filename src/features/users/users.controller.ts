@@ -1,32 +1,64 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Put,
+  Request,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { JwtAuthGuard } from 'src/features/auth/auth.module';
-import { CreateUserDto } from './dto/user.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/role.enum';
+import { RequestWithUser } from '../auth/types/request.user.type';
 
+@ApiTags('users')
 @Controller('users')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  @ApiBearerAuth()
   @Get()
   findAll(): Promise<User[]> {
     return this.usersService.findAll();
   }
 
+  @Roles(Role.ADMIN)
   @Get(':id')
   findOne(@Param('id') id: string): Promise<User> {
     return this.usersService.findOne(+id);
   }
 
+  @Roles(Role.ADMIN)
   @Post()
   create(@Body() user: CreateUserDto): Promise<User> {
     return this.usersService.create(user);
+  }
+
+  @Put(':id')
+  @ApiBearerAuth()
+  @ApiBody({ type: UpdateUserDto })
+  @ApiOkResponse({ description: 'User updated successfully', type: User })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async update(
+    @Param('id') id: number,
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() req: RequestWithUser,
+  ): Promise<User> {
+    return this.usersService.update(id, updateUserDto, req.user);
   }
 }
