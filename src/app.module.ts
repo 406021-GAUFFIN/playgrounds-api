@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './features/users/users.module';
 import { AuthModule } from './features/auth/auth.module';
 import { EmailModule } from './features/email/email.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { EmailModule } from './features/email/email.module';
     AuthModule,
     EmailModule,
   ],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
