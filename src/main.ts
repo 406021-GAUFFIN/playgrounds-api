@@ -40,5 +40,10 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Application is running on port ${port}`);
+  process.on('SIGTERM', () => {
+    app.close().then(() => {
+      process.exit(0);
+    });
+  });
 }
 bootstrap();
