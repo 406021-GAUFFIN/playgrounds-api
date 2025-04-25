@@ -9,13 +9,26 @@ async function bootstrap() {
   // Configuración de CORS
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['*'];
-  app.enableCors({
-    origin: allowedOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
+    : [];
 
+  // Configuración CORS más robusta
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Permitir solicitudes sin origen (como mobile apps o curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Rechazar solicitudes de orígenes no permitidos
+      return callback(new Error('Not allowed by CORS'));
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 204,
+  });
   // Configuración de validación global
   app.useGlobalPipes(
     new ValidationPipe({
