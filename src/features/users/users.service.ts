@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { EmailService } from '../email/email.service';
 import { Role } from '../../common/enum/role.enum';
@@ -25,6 +29,16 @@ export class UsersService {
   }
 
   async create(user: Partial<User>): Promise<User> {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: user.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'Ya existe un usuario con este correo electrónico',
+      );
+    }
+
     const savedUser = await this.userRepository.createUser(user);
     await this.emailService.sendVerificationEmail(
       savedUser.email,
@@ -47,6 +61,16 @@ export class UsersService {
   }
 
   async register(user: Partial<User>): Promise<User> {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: user.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'Ya existe un usuario con este correo electrónico',
+      );
+    }
+
     const newUser = this.userRepository.create(user);
     const savedUser = await this.userRepository.save(newUser);
     await this.emailService.sendVerificationEmail(
