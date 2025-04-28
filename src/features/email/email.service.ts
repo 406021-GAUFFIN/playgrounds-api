@@ -9,6 +9,14 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, code: string) {
+    const enableEmail = this.configService.get('ENABLE_EMAIL') === 'true';
+
+    if (!enableEmail) {
+      console.log('Email sending is disabled. Would have sent to:', email);
+      console.log('Verification code:', code);
+      return;
+    }
+
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const verificationUrl = `${frontendUrl}/verify-email?email=${encodeURIComponent(email)}&code=${code}`;
