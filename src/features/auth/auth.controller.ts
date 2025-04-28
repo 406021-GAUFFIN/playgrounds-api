@@ -45,7 +45,7 @@ export class AuthController {
       role: Role.SPORTSMAN,
     });
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...result } = user;
+    const { password, verificationCode, ...result } = user;
     return result;
   }
 
