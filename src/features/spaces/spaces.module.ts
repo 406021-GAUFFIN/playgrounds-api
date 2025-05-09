@@ -4,11 +4,11 @@ import { SpacesService } from './spaces.service';
 import { SpacesController } from './spaces.controller';
 import { Space } from './entities/space.entity';
 import { SportsModule } from '../sports/sports.module';
-import { SpaceRepository } from './spaces.repository';
+import { SpacesRepository } from './spaces.repository';
 @Module({
   imports: [TypeOrmModule.forFeature([Space]), SportsModule],
   controllers: [SpacesController],
-  providers: [SpacesService, SpaceRepository],
+  providers: [SpacesService, SpacesRepository],
   exports: [SpacesService],
 })
 export class SpacesModule {}

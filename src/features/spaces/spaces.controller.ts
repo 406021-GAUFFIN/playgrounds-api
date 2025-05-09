@@ -7,18 +7,24 @@ import {
   UseGuards,
   Req,
   Query,
+  Put,
 } from '@nestjs/common';
 import { SpacesService } from './spaces.service';
-import { CreateSpaceDto } from './dto/create-space.dto';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Space } from './entities/space.entity';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
-import { SpacePaginationDto, SpaceQueryDto } from './dto/space.dto';
+import {
+  CreateSpaceDto,
+  SpacePaginationDto,
+  SpaceQueryDto,
+} from './dto/space.dto';
+import { UpdateSpaceDto } from './dto/update-space.dto';
 
 @ApiTags('Spaces')
 @Controller('spaces')
@@ -56,5 +62,29 @@ export class SpacesController {
   @ApiResponse({ status: 200, description: 'Return the space', type: Space })
   findOne(@Param('id') id: string) {
     return this.spacesService.findOne(+id);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a space' })
+  @ApiBody({ type: UpdateSpaceDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Space updated successfully',
+    type: Space,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only admins can update spaces',
+  })
+  @ApiResponse({ status: 404, description: 'Space not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateSpaceDto: UpdateSpaceDto,
+    @Req() req,
+  ) {
+    return this.spacesService.update(+id, updateSpaceDto, req.user);
   }
 }

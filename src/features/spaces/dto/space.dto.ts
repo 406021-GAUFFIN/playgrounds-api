@@ -1,10 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { Space } from '../entities/space.entity';
 import {
   PaginationDto,
   RequestPaginationDto,
 } from '../../../common/dto/pagination.dto';
-import { IsString } from 'class-validator';
+import { IsArray, IsNumber, IsString } from 'class-validator';
 import { IsOptional } from 'class-validator';
 
 export class SpacePaginationDto extends PaginationDto<Space> {
@@ -17,4 +17,22 @@ export class SpaceQueryDto extends RequestPaginationDto {
   @IsString()
   @IsOptional()
   name?: string;
+}
+
+export class CreateSpaceDto extends OmitType(Space, [
+  'id',
+  'createdAt',
+  'deletedAt',
+  'updatedAt',
+  'sports',
+] as const) {
+  @ApiProperty({
+    description: 'Deportes disponibles en el espacio',
+    type: [Number],
+    required: false,
+  })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  sportIds: number[];
 }

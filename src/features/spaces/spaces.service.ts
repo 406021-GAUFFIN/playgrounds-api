@@ -4,21 +4,18 @@ import {
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Space } from './entities/space.entity';
-import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { User } from '../users/entities/user.entity';
 import { SportsService } from '../sports/sports.service';
 import { Role } from '../../common/enum/role.enum';
-import { SpaceQueryDto } from './dto/space.dto';
-import { SpaceRepository } from './spaces.repository';
+import { CreateSpaceDto, SpaceQueryDto } from './dto/space.dto';
+import { SpacesRepository } from './spaces.repository';
 
 @Injectable()
 export class SpacesService {
   constructor(
-    @InjectRepository(Space)
-    private readonly spaceRepository: SpaceRepository,
+    private readonly spaceRepository: SpacesRepository,
     private readonly sportsService: SportsService,
   ) {}
 

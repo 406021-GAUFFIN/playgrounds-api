@@ -16,11 +16,11 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enum/role.enum';
 import { UpdateSportDto } from './dto/update-sport.dto';
 @Controller('sports')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class SportsController {
   constructor(private readonly sportsService: SportsService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   create(@Body() createSportDto: CreateSportDto) {
     return this.sportsService.create(createSportDto);
