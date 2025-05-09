@@ -3,7 +3,7 @@ import { Space } from '../entities/space.entity';
 import {
   PaginationDto,
   RequestPaginationDto,
-} from '../../../common/dto/pagination.dto';
+} from 'src/common/dto/Pagination.dto';
 import { IsArray, IsNumber, IsString } from 'class-validator';
 import { IsOptional } from 'class-validator';
 
