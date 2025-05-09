@@ -6,6 +6,8 @@ import { UsersModule } from './features/users/users.module';
 import { AuthModule } from './features/auth/auth.module';
 import { EmailModule } from './features/email/email.module';
 import { AppController } from './app.controller';
+import { SpacesModule } from './features/spaces/spaces.module';
+import { SportsModule } from './features/sports/sports.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { AppController } from './app.controller';
     UsersModule,
     AuthModule,
     EmailModule,
+    SpacesModule,
+    SportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
