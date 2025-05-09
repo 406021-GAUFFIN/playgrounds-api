@@ -34,7 +34,6 @@ export class SpacesService {
       throw new ConflictException('Ya existe un espacio en esta dirección');
     }
 
-    // Verificar que todos los deportes existan
     const sports = await Promise.all(
       createSpaceDto.sportIds.map(async (sportId) => {
         try {
@@ -83,7 +82,6 @@ export class SpacesService {
     const space = await this.findOne(id);
 
     if (updateSpaceDto.sportIds) {
-      // Verificar que todos los deportes existan
       const sports = await Promise.all(
         updateSpaceDto.sportIds.map(async (sportId) => {
           try {
