@@ -11,18 +11,43 @@ export class SpacesRepository extends Repository<Space> {
   }
 
   async findSpacesByFiltersPaginated(payload: SpaceQueryDto) {
-    const { page, pageSize, name } = payload;
+    const { page, pageSize, name, isActive, minLat, maxLat, minLng, maxLng } =
+      payload;
 
     const pageNumber = page ?? 0;
     const take = pageSize ?? 10;
     const skip = Math.max(0, pageNumber) * take;
 
-    const query = this.createQueryBuilder('space');
+    const query = this.createQueryBuilder('space')
+      .leftJoinAndSelect('space.sports', 'sport')
+      .select([
+        'space',
+        'sport.id',
+        'sport.name',
+        'sport.minParticipants',
+        'sport.maxParticipants',
+      ]);
 
     if (name)
       query.andWhere('UPPER(space.name) LIKE UPPER(:name)', {
         name: `%${name}%`,
       });
+
+    if (isActive !== undefined)
+      query.andWhere('space.isActive = :isActive', { isActive });
+
+    if (minLat !== undefined)
+      query.andWhere('space.latitude >= :minLat', { minLat });
+
+    if (maxLat !== undefined)
+      query.andWhere('space.latitude <= :maxLat', { maxLat });
+
+    if (minLng !== undefined)
+      query.andWhere('space.longitude >= :minLng', { minLng });
+
+    if (maxLng !== undefined)
+      query.andWhere('space.longitude <= :maxLng', { maxLng });
+
     const [data, total] = await query.take(take).skip(skip).getManyAndCount();
 
     return new PaginationDto({
