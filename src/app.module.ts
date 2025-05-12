@@ -8,6 +8,8 @@ import { EmailModule } from './features/email/email.module';
 import { AppController } from './app.controller';
 import { SpacesModule } from './features/spaces/spaces.module';
 import { SportsModule } from './features/sports/sports.module';
+import { EventsModule } from './features/events/events.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -46,11 +48,14 @@ import { SportsModule } from './features/sports/sports.module';
       },
     }),
 
+    ScheduleModule.forRoot(),
+
     UsersModule,
     AuthModule,
     EmailModule,
     SpacesModule,
     SportsModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

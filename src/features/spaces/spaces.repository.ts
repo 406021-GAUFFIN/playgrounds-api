@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { Space } from './entities/space.entity';
 import { PaginationDto } from 'src/common/dto/Pagination.dto';
@@ -56,5 +56,16 @@ export class SpacesRepository extends Repository<Space> {
       pageSize: take,
       total,
     });
+  }
+
+  async findOneWithRelations(id: number): Promise<Space> {
+    const space = await this.findOne({
+      where: { id, isActive: true },
+      relations: ['sports'],
+    });
+    if (!space) {
+      throw new NotFoundException(`Espacio con ID ${id} no encontrado`);
+    }
+    return space;
   }
 }

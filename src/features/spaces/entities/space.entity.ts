@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, Column, ManyToMany, JoinTable, OneToMany } from 'typeorm';
 import { EntityBase } from '../../../common/entity/base.entity';
 import { Sport } from '../../sports/entities/sport.entity';
 import { ApiProperty } from '@nestjs/swagger';
@@ -11,6 +11,7 @@ import {
   Length,
   IsNotEmpty,
 } from 'class-validator';
+import { Event } from '../../events/entities/event.entity';
 
 @Entity('spaces')
 export class Space extends EntityBase {
@@ -109,6 +110,10 @@ export class Space extends EntityBase {
   @Column({ type: 'float' })
   longitude: number;
 
+  @ApiProperty({
+    description: 'Deportes disponibles en el espacio',
+    type: () => [Sport],
+  })
   @IsArray()
   @IsOptional()
   @ManyToMany(() => Sport)
@@ -124,4 +129,11 @@ export class Space extends EntityBase {
     },
   })
   sports: Sport[];
+
+  @ApiProperty({
+    description: 'Eventos realizados en el espacio',
+    type: () => [Event],
+  })
+  @OneToMany(() => Event, (event) => event.space)
+  events: Event[];
 }

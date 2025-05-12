@@ -58,14 +58,7 @@ export class SpacesService {
   }
 
   async findOne(id: number): Promise<Space> {
-    const space = await this.spaceRepository.findOne({
-      where: { id, isActive: true },
-      relations: ['sports'],
-    });
-    if (!space) {
-      throw new NotFoundException(`Espacio con ID ${id} no encontrado`);
-    }
-    return space;
+    return this.spaceRepository.findOneWithRelations(id);
   }
 
   async update(
