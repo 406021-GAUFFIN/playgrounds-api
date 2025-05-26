@@ -175,4 +175,40 @@ export class EventRepository extends Repository<Event> {
 
     return this.save(event);
   }
+
+  async leaveEvent(eventId: number, user: User): Promise<Event> {
+    const event = await this.findOne({
+      where: { id: eventId },
+      relations: ['creator', 'participants'],
+    });
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (event.creator.id === user.id) {
+      throw new Error('El creador del evento no puede salir del mismo');
+    }
+
+    if (event.status !== EventStatus.AVAILABLE) {
+      throw new Error('Solo se puede salir de eventos en estado CONFIRMED');
+    }
+
+    if (event.dateTime <= new Date()) {
+      throw new Error('No se puede salir de eventos pasados');
+    }
+
+    if (event.participants.length >= event.minParticipants) {
+      throw new Error(
+        'No se puede salir del evento porque se alcanzó el mínimo de participantes',
+      );
+    }
+
+    if (!event.participants.some((p) => p.id === user.id)) {
+      throw new Error('El usuario no es participante del evento');
+    }
+
+    event.participants = event.participants.filter((p) => p.id !== user.id);
+    return this.save(event);
+  }
 }

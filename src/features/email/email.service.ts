@@ -396,4 +396,105 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendEventUpdatedEmail(event: Event, participants: User[]) {
+    const enableEmail = this.configService.get('ENABLE_EMAIL') === 'true';
+
+    if (!enableEmail) {
+      console.log(
+        'Email sending is disabled. Would have sent event updated notification to:',
+        participants.map((p) => p.email).join(', '),
+      );
+      console.log('Event:', event.title);
+      return;
+    }
+
+    const frontendUrl =
+      this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
+    const eventUrl = `${frontendUrl}/events/${event.id}`;
+
+    const msg = {
+      to: participants.map((p) => p.email),
+      from: 'ljgauffin@gmail.com',
+      subject: `Evento actualizado: ${event.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+          <style>
+            body {
+              font-family: 'Inter', sans-serif;
+              color: #4b5563;
+              line-height: 1.5;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .logo {
+              font-weight: 700;
+              font-size: 24px;
+              margin-bottom: 24px;
+            }
+            .event-details {
+              background-color: #f3f4f6;
+              padding: 16px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .button {
+              display: inline-block;
+              background-color: #2563eb;
+              color: white;
+              padding: 12px 24px;
+              border-radius: 6px;
+              text-decoration: none;
+              margin-top: 16px;
+            }
+            .note {
+              font-size: 14px;
+              color: #6b7280;
+              margin-top: 16px;
+            }
+            .warning {
+              color: #dc2626;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="logo">Playgrounds</div>
+            <p>El evento ha sido actualizado por el organizador.</p>
+            <div class="event-details">
+              <h2>${event.title}</h2>
+              <p><strong>Fecha:</strong> ${new Date(event.dateTime).toLocaleString()}</p>
+              <p><strong>Lugar:</strong> ${event.space.name}</p>
+              <p><strong>Deporte:</strong> ${event.sport.name}</p>
+              <p><strong>Participantes:</strong> ${event.participants.length}/${event.maxParticipants}</p>
+            </div>
+            <p>Por favor, revisa los cambios y decide si deseas continuar participando en el evento.</p>
+            <p>Si ya no deseas participar, puedes salir del evento haciendo clic en el siguiente botón:</p>
+            <a href="${eventUrl}" class="button" style="color: white;">Ver detalles del evento</a>
+            <p class="note">Si no tomas ninguna acción, se asumirá que deseas continuar participando.</p>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      await sgMail.send(msg);
+      console.log(
+        `Event updated emails sent to ${participants.length} participants`,
+      );
+    } catch (error) {
+      console.error('Error sending event updated emails:', error);
+      throw error;
+    }
+  }
 }

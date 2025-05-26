@@ -124,4 +124,18 @@ export class EventsController {
   ): Promise<Event> {
     return this.eventsService.cancel(id, req.user);
   }
+
+  @Put(':id/leave')
+  @ApiOperation({ summary: 'Salir de un evento' })
+  @ApiResponse({
+    status: 200,
+    description: 'Se ha salido del evento exitosamente',
+    type: Event,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 404, description: 'Evento no encontrado' })
+  @ApiResponse({ status: 400, description: 'No se puede salir del evento' })
+  leaveEvent(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.eventsService.leaveEvent(+id, req.user);
+  }
 }

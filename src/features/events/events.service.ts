@@ -92,7 +92,24 @@ export class EventsService {
     }
 
     try {
-      return await this.eventRepository.updateEvent(id, updateEventDto);
+      const updatedEvent = await this.eventRepository.updateEvent(
+        id,
+        updateEventDto,
+      );
+
+      // Enviar correo a todos los participantes excepto el creador
+      const participantsToNotify = updatedEvent.participants.filter(
+        (participant) => participant.id !== user.id,
+      );
+
+      if (participantsToNotify.length > 0) {
+        await this.emailService.sendEventUpdatedEmail(
+          updatedEvent,
+          participantsToNotify,
+        );
+      }
+
+      return updatedEvent;
     } catch (error) {
       if (error.message === 'Event not found') {
         throw new NotFoundException('Evento no encontrado');
@@ -126,5 +143,17 @@ export class EventsService {
     await this.eventRepository.save(event);
     await this.emailService.sendEventCancelledEmail(event, event.participants);
     return event;
+  }
+
+  async leaveEvent(id: number, user: User): Promise<Event> {
+    try {
+      const event = await this.eventRepository.leaveEvent(id, user);
+      return event;
+    } catch (error) {
+      if (error.message === 'Event not found') {
+        throw new NotFoundException(`Event with ID ${id} not found`);
+      }
+      throw new BadRequestException(error.message);
+    }
   }
 }
