@@ -8,6 +8,7 @@ import { SportsModule } from '../sports/sports.module';
 import { EmailModule } from '../email/email.module';
 import { EventRepository } from './repositories/event.repository';
 import { EventsCronService } from './events-cron.service';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EventsCronService } from './events-cron.service';
     SpacesModule,
     SportsModule,
     EmailModule,
+    UsersModule,
   ],
   controllers: [EventsController],
   providers: [EventsService, EventRepository, EventsCronService],

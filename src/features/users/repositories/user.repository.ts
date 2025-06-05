@@ -54,4 +54,30 @@ export class UserRepository extends Repository<User> {
       total,
     });
   }
+
+  async findUsersForEventNotification(
+    latitude: number,
+    longitude: number,
+    sportId: number,
+  ): Promise<User[]> {
+    return this.createQueryBuilder('user')
+      .leftJoinAndSelect('user.interestedSports', 'sport')
+      .where('user.wantsNearbyNotifications = :wantsNotifications', {
+        wantsNotifications: true,
+      })
+      .andWhere('sport.id = :sportId', { sportId })
+      .andWhere('user.latitude IS NOT NULL')
+      .andWhere('user.longitude IS NOT NULL')
+      .andWhere('user.searchRadius IS NOT NULL')
+      .andWhere(
+        `
+        ST_Distance(
+          ST_SetSRID(ST_MakePoint(user.longitude, user.latitude), 4326)::geography,
+          ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+        ) <= user.searchRadius
+      `,
+        { longitude, latitude },
+      )
+      .getMany();
+  }
 }

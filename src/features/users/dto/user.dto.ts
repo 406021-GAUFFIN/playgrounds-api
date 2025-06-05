@@ -1,6 +1,13 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { User } from '../entities/user.entity';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import {
   PaginationDto,
   RequestPaginationDto,
@@ -14,6 +21,11 @@ export class CreateUserDto extends OmitType(User, [
   'deletedAt',
   'updatedAt',
   'verificationCode',
+  'latitude',
+  'longitude',
+  'interestedSports',
+  'searchRadius',
+  'wantsNearbyNotifications',
 ] as const) {}
 
 export class RegisterUserDto extends OmitType(User, [
@@ -36,6 +48,7 @@ export class UpdateUserDto extends OmitType(User, [
   'verificationCode',
   'email',
   'password',
+  'interestedSports',
 ] as const) {
   @ApiProperty({
     description: 'Password',
@@ -46,6 +59,15 @@ export class UpdateUserDto extends OmitType(User, [
   })
   @IsOptional()
   password?: string;
+  @ApiProperty({
+    description: 'Deportes disponibles en el espacio',
+    type: [Number],
+    required: false,
+  })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  interestedSportIds: number[];
 }
 
 export class UserQueryDto extends RequestPaginationDto {

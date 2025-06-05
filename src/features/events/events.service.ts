@@ -13,6 +13,7 @@ import { SportsService } from '../sports/sports.service';
 import { EventQueryDto } from './dto/event-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EmailService } from '../email/email.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class EventsService {
@@ -20,6 +21,7 @@ export class EventsService {
     private eventRepository: EventRepository,
     private spacesService: SpacesService,
     private sportsService: SportsService,
+    private usersService: UsersService,
     private emailService: EmailService,
   ) {}
 
@@ -34,7 +36,7 @@ export class EventsService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { spaceId, sportId, ...eventData } = createEventDto;
 
-    return this.eventRepository.createEvent(
+    const event = await this.eventRepository.createEvent(
       {
         ...eventData,
         space,
@@ -42,6 +44,25 @@ export class EventsService {
       },
       creator,
     );
+
+    const usersToNotify = await this.usersService.findUsersForEventNotification(
+      space.latitude,
+      space.longitude,
+      sport.id,
+    );
+
+    const filteredUsersToNotify = usersToNotify.filter(
+      (user) => user.id !== creator.id,
+    );
+
+    if (filteredUsersToNotify.length > 0) {
+      await this.emailService.sendNewEventNotification(
+        event,
+        filteredUsersToNotify,
+      );
+    }
+
+    return event;
   }
 
   async joinEvent(eventId: number, user: User): Promise<Event> {

@@ -1,9 +1,19 @@
-import { Entity, Column, BeforeInsert } from 'typeorm';
+import { Entity, Column, BeforeInsert, ManyToMany, JoinTable } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+  Max,
+} from 'class-validator';
 import { Role } from '../../../common/enum/role.enum';
 import { EntityBase } from '../../../common/entity/base.entity';
+import { Sport } from '../../sports/entities/sport.entity';
 
 @Entity()
 export class User extends EntityBase {
@@ -54,6 +64,53 @@ export class User extends EntityBase {
   @IsEnum(Role)
   @IsNotEmpty()
   role: Role;
+
+  @ApiProperty({
+    description: 'Latitud de la ubicación del usuario',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Column({ type: 'float', nullable: true })
+  latitude: number;
+
+  @ApiProperty({
+    description: 'Longitud de la ubicación del usuario',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Column({ type: 'float', nullable: true })
+  longitude: number;
+
+  @ApiProperty({
+    description: 'Radio de búsqueda en metros',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(100)
+  @Max(50000)
+  @Column({ type: 'int', nullable: true })
+  searchRadius: number;
+
+  @ApiProperty({
+    description:
+      'Indica si el usuario desea recibir notificaciones de eventos cercanos',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Column({ type: 'boolean', default: false })
+  wantsNearbyNotifications: boolean;
+
+  @ApiProperty({
+    description: 'Deportes de interés del usuario',
+    required: false,
+  })
+  @ManyToMany(() => Sport)
+  @JoinTable()
+  interestedSports: Sport[];
 
   @BeforeInsert()
   async hashPassword() {
