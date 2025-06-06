@@ -8,6 +8,7 @@ import {
   Req,
   Query,
   Put,
+  Request,
 } from '@nestjs/common';
 import { SpacesService } from './spaces.service';
 import {
@@ -25,6 +26,9 @@ import {
   SpaceQueryDto,
 } from './dto/space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
+import { CreateSpaceRatingDto } from './dto/create-space-rating.dto';
+import { SpaceRating } from './entities/space-rating.entity';
+import { CanRateResponseDto } from './dto/can-rate-response.dto';
 
 @ApiTags('Spaces')
 @Controller('spaces')
@@ -86,5 +90,59 @@ export class SpacesController {
     @Req() req,
   ) {
     return this.spacesService.update(+id, updateSpaceDto, req.user);
+  }
+
+  @Post(':id/ratings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Calificar un espacio' })
+  @ApiResponse({
+    status: 201,
+    description: 'Calificación creada exitosamente',
+    type: SpaceRating,
+  })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiResponse({ status: 404, description: 'Espacio no encontrado' })
+  createRating(
+    @Param('id') id: string,
+    @Body() createSpaceRatingDto: CreateSpaceRatingDto,
+    @Request() req,
+  ): Promise<SpaceRating> {
+    return this.spacesService.createRating(
+      +id,
+      req.user.id,
+      createSpaceRatingDto,
+    );
+  }
+
+  @Get(':id/ratings')
+  @ApiOperation({ summary: 'Obtener calificaciones de un espacio' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de calificaciones',
+    type: [SpaceRating],
+  })
+  @ApiResponse({ status: 404, description: 'Espacio no encontrado' })
+  getRatings(@Param('id') id: string): Promise<SpaceRating[]> {
+    return this.spacesService.getRatings(+id);
+  }
+
+  @Get(':id/can-rate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Verificar si el usuario puede calificar un espacio',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Información sobre si el usuario puede calificar',
+    type: CanRateResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Espacio no encontrado' })
+  canRateSpace(
+    @Param('id') id: string,
+    @Request() req,
+  ): Promise<CanRateResponseDto> {
+    return this.spacesService.canUserRateSpace(+id, req.user.id);
   }
 }

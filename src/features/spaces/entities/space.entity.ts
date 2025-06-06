@@ -12,6 +12,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Event } from '../../events/entities/event.entity';
+import { SpaceRating } from './space-rating.entity';
 
 @Entity('spaces')
 export class Space extends EntityBase {
@@ -136,4 +137,21 @@ export class Space extends EntityBase {
   })
   @OneToMany(() => Event, (event) => event.space)
   events: Event[];
+
+  @ApiProperty({
+    description: 'Promedio de calificaciones del espacio',
+    example: 4.5,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Column({ type: 'float', default: null })
+  averageRating: number;
+
+  @ApiProperty({
+    description: 'Calificaciones del espacio',
+    type: () => [SpaceRating],
+  })
+  @OneToMany(() => SpaceRating, (rating) => rating.space)
+  ratings: SpaceRating[];
 }

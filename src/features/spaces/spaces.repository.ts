@@ -59,10 +59,22 @@ export class SpacesRepository extends Repository<Space> {
   }
 
   async findOneWithRelations(id: number): Promise<Space> {
-    const space = await this.findOne({
-      where: { id, isActive: true },
-      relations: ['sports'],
-    });
+    const space = await this.createQueryBuilder('space')
+      .leftJoinAndSelect('space.sports', 'sports')
+      .leftJoinAndSelect('space.ratings', 'ratings')
+      .leftJoinAndSelect('ratings.user', 'user', 'user.id = ratings.user_id')
+      .select([
+        'space',
+        'sports',
+        'ratings',
+        'user.id',
+        'user.name',
+        'user.email',
+      ])
+      .where('space.id = :id', { id })
+      .andWhere('space.isActive = :isActive', { isActive: true })
+      .getOne();
+
     if (!space) {
       throw new NotFoundException(`Espacio con ID ${id} no encontrado`);
     }
