@@ -29,6 +29,7 @@ import { UpdateSpaceDto } from './dto/update-space.dto';
 import { CreateSpaceRatingDto } from './dto/create-space-rating.dto';
 import { SpaceRating } from './entities/space-rating.entity';
 import { CanRateResponseDto } from './dto/can-rate-response.dto';
+import { UpdateSpaceRatingDto } from './dto/update-space-rating.dto';
 
 @ApiTags('Spaces')
 @Controller('spaces')
@@ -144,5 +145,34 @@ export class SpacesController {
     @Request() req,
   ): Promise<CanRateResponseDto> {
     return this.spacesService.canUserRateSpace(+id, req.user.id);
+  }
+
+  @Put(':id/ratings/:ratingId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar calificación de un espacio' })
+  @ApiResponse({
+    status: 200,
+    description: 'Calificación actualizada exitosamente',
+    type: SpaceRating,
+  })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiResponse({
+    status: 403,
+    description: 'No tienes permiso para editar esta calificación',
+  })
+  @ApiResponse({ status: 404, description: 'Calificación no encontrada' })
+  updateRating(
+    @Param('id') id: string,
+    @Param('ratingId') ratingId: string,
+    @Body() updateSpaceRatingDto: UpdateSpaceRatingDto,
+    @Request() req,
+  ): Promise<SpaceRating> {
+    return this.spacesService.updateRating(
+      +id,
+      +ratingId,
+      req.user.id,
+      updateSpaceRatingDto,
+    );
   }
 }

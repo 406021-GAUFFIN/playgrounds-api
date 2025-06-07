@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Space } from './entities/space.entity';
 import { UpdateSpaceDto } from './dto/update-space.dto';
@@ -13,9 +14,10 @@ import { CreateSpaceDto, SpaceQueryDto } from './dto/space.dto';
 import { SpacesRepository } from './spaces.repository';
 import { SpaceRating } from './entities/space-rating.entity';
 import { CreateSpaceRatingDto } from './dto/create-space-rating.dto';
-import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event, EventStatus } from '../events/entities/event.entity';
+import { UpdateSpaceRatingDto } from './dto/update-space-rating.dto';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class SpacesService {
@@ -67,7 +69,11 @@ export class SpacesService {
   }
 
   async findOne(id: number): Promise<Space> {
-    return this.spaceRepository.findOneWithRelations(id);
+    const space = await this.spaceRepository.findOneWithRelations(id);
+    if (!space) {
+      throw new NotFoundException('space');
+    }
+    return space;
   }
 
   async update(
@@ -146,17 +152,18 @@ export class SpacesService {
 
     await this.spaceRatingRepository.save(rating);
 
-    // recalculo el promedio de calificaciones
-    const ratings = await this.spaceRatingRepository.find({
-      where: { space: { id: spaceId } },
-    });
-
-    const averageRating =
-      ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length;
-
-    await this.spaceRepository.update(spaceId, { averageRating });
+    await this.recalculateSpaceAverage(spaceId);
 
     return rating;
+  }
+  async recalculateSpaceAverage(spaceId: number) {
+    const space = await this.findOne(spaceId);
+
+    const averageRating =
+      space.ratings.reduce((acc, curr) => acc + curr.rating, 0) /
+      space.ratings.length;
+
+    await this.spaceRepository.update(spaceId, { averageRating });
   }
 
   async getRatings(spaceId: number): Promise<SpaceRating[]> {
@@ -204,5 +211,39 @@ export class SpacesService {
     return {
       canRate: true,
     };
+  }
+
+  async updateRating(
+    spaceId: number,
+    ratingId: number,
+    userId: number,
+    updateSpaceRatingDto: UpdateSpaceRatingDto,
+  ): Promise<SpaceRating> {
+    const rating = await this.spaceRatingRepository.findOne({
+      where: {
+        id: ratingId,
+        space: { id: spaceId },
+      },
+      relations: ['user'],
+    });
+
+    if (!rating) {
+      throw new NotFoundException('Calificación no encontrada');
+    }
+
+    if (rating.user.id !== userId) {
+      throw new ForbiddenException(
+        'Solo puedes editar tus propias calificaciones',
+      );
+    }
+
+    // Actualizar la calificación
+    Object.assign(rating, updateSpaceRatingDto);
+    await this.spaceRatingRepository.save(rating);
+
+    // Recalcular el promedio de calificaciones
+    await this.recalculateSpaceAverage(spaceId);
+
+    return rating;
   }
 }
