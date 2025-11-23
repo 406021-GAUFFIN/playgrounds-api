@@ -4,6 +4,13 @@ import { Event, EventStatus } from '../entities/event.entity';
 import { User } from '../../users/entities/user.entity';
 import { PaginationDto } from '../../../common/dto/Pagination.dto';
 import { EventQueryDto } from '../dto/event-query.dto';
+import {
+  DailyEventStatsDto,
+  SportEventCountDto,
+  SportParticipantStatsDto,
+  SportTimeSlotStatsDto,
+  TimeSlotDto,
+} from '../dto/event-stats-response.dto';
 
 @Injectable()
 export class EventRepository extends Repository<Event> {
@@ -210,5 +217,230 @@ export class EventRepository extends Repository<Event> {
 
     event.participants = event.participants.filter((p) => p.id !== user.id);
     return this.save(event);
+  }
+
+  async getWeeklyEventStats(weekStart: Date): Promise<DailyEventStatsDto[]> {
+    const daysOfWeek = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+    const dailyStats: DailyEventStatsDto[] = [];
+
+    // Generar estadísticas para cada día de la semana
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(weekStart);
+      currentDate.setDate(weekStart.getDate() + i);
+
+      const dayStart = new Date(currentDate);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const dayEnd = new Date(currentDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      // Obtener eventos del día con información del deporte
+      const eventsBySport = await this.createQueryBuilder('event')
+        .leftJoinAndSelect('event.sport', 'sport')
+        .select([
+          'sport.id as sportId',
+          'sport.name as sportName',
+          'COUNT(event.id) as eventCount',
+        ])
+        .where('event.dateTime >= :dayStart', { dayStart })
+        .andWhere('event.dateTime <= :dayEnd', { dayEnd })
+        .groupBy('sport.id, sport.name')
+        .getRawMany();
+
+      // Calcular total de eventos del día
+      const totalEvents = eventsBySport.reduce(
+        (sum, sport) => sum + parseInt(sport.eventcount),
+        0,
+      );
+
+      // Convertir a formato DTO
+      const eventsBySportDto: SportEventCountDto[] = eventsBySport.map(
+        (sport) => ({
+          sportId: parseInt(sport.sportid),
+          sportName: sport.sportname,
+          eventCount: parseInt(sport.eventcount),
+        }),
+      );
+
+      dailyStats.push({
+        date: currentDate.toISOString().split('T')[0],
+        dayOfWeek: daysOfWeek[currentDate.getDay()],
+        totalEvents,
+        eventsBySport: eventsBySportDto,
+      });
+    }
+
+    return dailyStats;
+  }
+
+  async getTopSportsByWeek(
+    weekStart: Date,
+    weekEnd: Date,
+  ): Promise<SportEventCountDto[]> {
+    const topSports = await this.createQueryBuilder('event')
+      .leftJoinAndSelect('event.sport', 'sport')
+      .select([
+        'sport.id as sportId',
+        'sport.name as sportName',
+        'COUNT(event.id) as eventCount',
+      ])
+      .where('event.dateTime >= :weekStart', { weekStart })
+      .andWhere('event.dateTime <= :weekEnd', { weekEnd })
+      .groupBy('sport.id, sport.name')
+      .orderBy('eventCount', 'DESC')
+      .limit(4)
+      .getRawMany();
+
+    return topSports.map((sport) => ({
+      sportId: parseInt(sport.sportid),
+      sportName: sport.sportname,
+      eventCount: parseInt(sport.eventcount),
+    }));
+  }
+
+  async getParticipantStatsBySport(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<SportParticipantStatsDto[]> {
+    // Obtener estadísticas básicas por deporte
+    const stats = await this.createQueryBuilder('event')
+      .leftJoinAndSelect('event.sport', 'sport')
+      .select([
+        'sport.id as sportId',
+        'sport.name as sportName',
+        'COUNT(DISTINCT event.id) as totalEvents',
+      ])
+      .where('event.dateTime >= :startDate', { startDate })
+      .andWhere('event.dateTime <= :endDate', { endDate })
+      .groupBy('sport.id, sport.name')
+      .getRawMany();
+
+    // Para cada deporte, obtener estadísticas de participantes
+    const result: SportParticipantStatsDto[] = [];
+
+    for (const stat of stats) {
+      const sportId = parseInt(stat.sportid);
+      const totalEvents = parseInt(stat.totalevents);
+
+      // Obtener eventos de este deporte con participantes
+      const eventsWithParticipants = await this.createQueryBuilder('event')
+        .leftJoinAndSelect('event.participants', 'participants')
+        .where('event.sport.id = :sportId', { sportId })
+        .andWhere('event.dateTime >= :startDate', { startDate })
+        .andWhere('event.dateTime <= :endDate', { endDate })
+        .getMany();
+
+      const participantCounts = eventsWithParticipants.map(
+        (event) => event.participants.length,
+      );
+      const totalParticipants = participantCounts.reduce(
+        (sum, count) => sum + count,
+        0,
+      );
+      const averageParticipants =
+        totalEvents > 0 ? totalParticipants / totalEvents : 0;
+      const minParticipants =
+        participantCounts.length > 0 ? Math.min(...participantCounts) : 0;
+      const maxParticipants =
+        participantCounts.length > 0 ? Math.max(...participantCounts) : 0;
+
+      result.push({
+        sportId,
+        sportName: stat.sportname,
+        totalEvents,
+        totalParticipants,
+        averageParticipants: Math.round(averageParticipants * 100) / 100, // Redondear a 2 decimales
+        minParticipants,
+        maxParticipants,
+      });
+    }
+
+    return result;
+  }
+
+  async getTimeSlotStatsBySport(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
+    timeSlots: TimeSlotDto[];
+    sportStats: SportTimeSlotStatsDto[];
+  }> {
+    // Definir franjas horarias
+    const timeSlots: TimeSlotDto[] = [
+      { timeSlot: '06:00-12:00', startHour: 6, endHour: 12 },
+      { timeSlot: '12:00-18:00', startHour: 12, endHour: 18 },
+      { timeSlot: '18:00-24:00', startHour: 18, endHour: 24 },
+      { timeSlot: '00:00-06:00', startHour: 0, endHour: 6 },
+    ];
+
+    // Obtener estadísticas por deporte y franja horaria
+    const sportStats = await this.createQueryBuilder('event')
+      .leftJoinAndSelect('event.sport', 'sport')
+      .select([
+        'sport.id as sportId',
+        'sport.name as sportName',
+        'EXTRACT(HOUR FROM event.dateTime) as hour',
+        'COUNT(event.id) as eventCount',
+      ])
+      .where('event.dateTime >= :startDate', { startDate })
+      .andWhere('event.dateTime <= :endDate', { endDate })
+      .groupBy('sport.id, sport.name, EXTRACT(HOUR FROM event.dateTime)')
+      .getRawMany();
+
+    // Procesar los resultados por deporte
+    const sportStatsMap = new Map<number, SportTimeSlotStatsDto>();
+
+    sportStats.forEach((stat) => {
+      const sportId = parseInt(stat.sportid);
+      const hour = parseInt(stat.hour);
+      const eventCount = parseInt(stat.eventcount);
+
+      if (!sportStatsMap.has(sportId)) {
+        sportStatsMap.set(sportId, {
+          sportId,
+          sportName: stat.sportname,
+          timeSlotFrequency: timeSlots.map((slot) => ({
+            timeSlot: slot.timeSlot,
+            eventCount: 0,
+            percentage: 0,
+          })),
+        });
+      }
+
+      const sportStat = sportStatsMap.get(sportId);
+      const timeSlotIndex = timeSlots.findIndex(
+        (slot) => hour >= slot.startHour && hour < slot.endHour,
+      );
+
+      if (timeSlotIndex !== -1) {
+        sportStat.timeSlotFrequency[timeSlotIndex].eventCount = eventCount;
+      }
+    });
+
+    // Calcular porcentajes para cada deporte
+    sportStatsMap.forEach((sportStat) => {
+      const totalEvents = sportStat.timeSlotFrequency.reduce(
+        (sum, slot) => sum + slot.eventCount,
+        0,
+      );
+
+      sportStat.timeSlotFrequency.forEach((slot) => {
+        slot.percentage =
+          totalEvents > 0 ? (slot.eventCount / totalEvents) * 100 : 0;
+      });
+    });
+
+    return {
+      timeSlots,
+      sportStats: Array.from(sportStatsMap.values()),
+    };
   }
 }

@@ -27,6 +27,19 @@ import { RequestWithUser } from '../auth/types/request.user.type';
 import { EventQueryDto } from './dto/event-query.dto';
 import { PaginationDto } from '../../common/dto/Pagination.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { Role } from '../../common/enum/role.enum';
+import {
+  EventStatsQueryDto,
+  ParticipantStatsQueryDto,
+  TimeSlotStatsQueryDto,
+} from './dto/event-stats.dto';
+import {
+  WeeklyEventStatsDto,
+  ParticipantStatsResponseDto,
+  TimeSlotStatsResponseDto,
+} from './dto/event-stats-response.dto';
 
 @ApiTags('Events')
 @UseGuards(JwtAuthGuard)
@@ -137,5 +150,69 @@ export class EventsController {
   @ApiResponse({ status: 400, description: 'No se puede salir del evento' })
   leaveEvent(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.eventsService.leaveEvent(+id, req.user);
+  }
+
+  @Get('stats/weekly')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Obtener estadísticas semanales de eventos' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas semanales de eventos',
+    type: WeeklyEventStatsDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Solo administradores',
+  })
+  async getWeeklyStats(
+    @Query() query: EventStatsQueryDto,
+  ): Promise<WeeklyEventStatsDto> {
+    return this.eventsService.getWeeklyEventStats(query);
+  }
+
+  @Get('stats/participants')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Obtener estadísticas de participantes por deporte',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas de participantes por deporte',
+    type: ParticipantStatsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Solo administradores',
+  })
+  async getParticipantStats(
+    @Query() query: ParticipantStatsQueryDto,
+  ): Promise<ParticipantStatsResponseDto> {
+    return this.eventsService.getParticipantStats(query);
+  }
+
+  @Get('stats/timeslots')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Obtener estadísticas de frecuencia por franja horaria y deporte',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas de frecuencia por franja horaria y deporte',
+    type: TimeSlotStatsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Solo administradores',
+  })
+  async getTimeSlotStats(
+    @Query() query: TimeSlotStatsQueryDto,
+  ): Promise<TimeSlotStatsResponseDto> {
+    return this.eventsService.getTimeSlotStats(query);
   }
 }

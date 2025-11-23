@@ -14,6 +14,16 @@ import { EventQueryDto } from './dto/event-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EmailService } from '../email/email.service';
 import { UsersService } from '../users/users.service';
+import {
+  EventStatsQueryDto,
+  ParticipantStatsQueryDto,
+  TimeSlotStatsQueryDto,
+} from './dto/event-stats.dto';
+import {
+  WeeklyEventStatsDto,
+  ParticipantStatsResponseDto,
+  TimeSlotStatsResponseDto,
+} from './dto/event-stats-response.dto';
 
 @Injectable()
 export class EventsService {
@@ -176,5 +186,75 @@ export class EventsService {
       }
       throw new BadRequestException(error.message);
     }
+  }
+
+  async getWeeklyEventStats(
+    query: EventStatsQueryDto,
+  ): Promise<WeeklyEventStatsDto> {
+    const weekStart = new Date(query.weekStart);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    // Obtener estadísticas de eventos por día y deporte
+    const dailyStats =
+      await this.eventRepository.getWeeklyEventStats(weekStart);
+
+    // Obtener top 4 deportes con más eventos en la semana
+    const topSports = await this.eventRepository.getTopSportsByWeek(
+      weekStart,
+      weekEnd,
+    );
+
+    // Calcular total de eventos en la semana
+    const totalEvents = dailyStats.reduce(
+      (sum, day) => sum + day.totalEvents,
+      0,
+    );
+
+    return {
+      weekStart: weekStart.toISOString().split('T')[0],
+      weekEnd: weekEnd.toISOString().split('T')[0],
+      totalEvents,
+      dailyStats,
+      topSports,
+    };
+  }
+
+  async getParticipantStats(
+    query: ParticipantStatsQueryDto,
+  ): Promise<ParticipantStatsResponseDto> {
+    const startDate = new Date(query.startDate);
+    const endDate = new Date(query.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    const sportStats = await this.eventRepository.getParticipantStatsBySport(
+      startDate,
+      endDate,
+    );
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      sportStats,
+    };
+  }
+
+  async getTimeSlotStats(
+    query: TimeSlotStatsQueryDto,
+  ): Promise<TimeSlotStatsResponseDto> {
+    const startDate = new Date(query.startDate);
+    const endDate = new Date(query.endDate);
+    endDate.setHours(23, 59, 59, 999);
+
+    const { timeSlots, sportStats } =
+      await this.eventRepository.getTimeSlotStatsBySport(startDate, endDate);
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      timeSlots,
+      sportStats,
+    };
   }
 }

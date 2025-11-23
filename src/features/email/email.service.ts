@@ -1,13 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import * as sgMail from '@sendgrid/mail';
+import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
 import { Event } from '../events/entities/event.entity';
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class EmailService {
+  private transporter: nodemailer.Transporter;
+
   constructor(private configService: ConfigService) {
-    sgMail.setApiKey(this.configService.get('SENDGRID_API_KEY'));
+    // Configurar el transporter de Gmail
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: this.configService.get('GMAIL_USER'),
+        pass: this.configService.get('GMAIL_APP_PASSWORD'), // Contraseña de aplicación
+      },
+    });
   }
 
   async sendVerificationEmail(email: string, code: string) {
@@ -23,9 +32,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const verificationUrl = `${frontendUrl}/verify-email?email=${encodeURIComponent(email)}&code=${code}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: email,
-      from: 'ljgauffin@gmail.com',
       subject: 'Verifica tu correo electrónico',
       html: `
         <!DOCTYPE html>
@@ -93,7 +102,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(`Email sent to ${email}`);
     } catch (error) {
       console.error('Error sending email:', error);
@@ -117,9 +126,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const eventUrl = `${frontendUrl}/events/${event.id}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: participants.map((p) => p.email),
-      from: 'ljgauffin@gmail.com',
       subject: `¡Evento confirmado: ${event.title}!`,
       html: `
         <!DOCTYPE html>
@@ -187,7 +196,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(
         `Event confirmation emails sent to ${participants.length} participants`,
       );
@@ -213,9 +222,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const eventUrl = `${frontendUrl}/events/${event.id}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: participants.map((p) => p.email),
-      from: 'ljgauffin@gmail.com',
       subject: `Evento suspendido: ${event.title}`,
       html: `
         <!DOCTYPE html>
@@ -287,7 +296,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(
         `Event suspended emails sent to ${participants.length} participants`,
       );
@@ -313,9 +322,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const eventUrl = `${frontendUrl}/events/${event.id}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: participants.map((p) => p.email),
-      from: 'ljgauffin@gmail.com',
       subject: `Evento cancelado: ${event.title}`,
       html: `
         <!DOCTYPE html>
@@ -387,7 +396,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(
         `Event cancelled emails sent to ${participants.length} participants`,
       );
@@ -413,9 +422,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const eventUrl = `${frontendUrl}/events/${event.id}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: participants.map((p) => p.email),
-      from: 'ljgauffin@gmail.com',
       subject: `Evento actualizado: ${event.title}`,
       html: `
         <!DOCTYPE html>
@@ -488,7 +497,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(
         `Event updated emails sent to ${participants.length} participants`,
       );
@@ -514,9 +523,9 @@ export class EmailService {
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
     const eventUrl = `${frontendUrl}/events/${event.id}`;
 
-    const msg = {
+    const mailOptions = {
+      from: this.configService.get('GMAIL_USER'),
       to: users.map((p) => p.email),
-      from: 'ljgauffin@gmail.com',
       subject: `¡Nuevo evento cerca de ti: ${event.title}!`,
       html: `
         <!DOCTYPE html>
@@ -584,7 +593,7 @@ export class EmailService {
     };
 
     try {
-      await sgMail.send(msg);
+      await this.transporter.sendMail(mailOptions);
       console.log(
         `New event notification emails sent to ${users.length} users`,
       );

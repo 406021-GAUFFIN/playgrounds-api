@@ -1,5 +1,6 @@
 {
     "configurations": [
+    
         {
             "type": "chrome",
             "name": "ws://127.0.0.1:9229/9affec39-782a-4bd8-a017-bb2e01d308c3",
