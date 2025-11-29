@@ -97,4 +97,40 @@ export class EventQueryDto extends RequestPaginationDto {
   @IsOptional()
   @Type(() => Number)
   participantId?: number;
+
+  @ApiProperty({
+    description: 'ID del participante',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  participantToExcludeId?: number;
+
+  @ApiProperty({
+    description: 'Latitud para ordenar por cercanía',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  latitude?: number;
+
+  @ApiProperty({
+    description: 'Longitud para ordenar por cercanía',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  longitude?: number;
+
+  @ApiProperty({
+    description: 'Ordenar por distancia (ASC o DESC)',
+    enum: ['ASC', 'DESC'],
+    required: false,
+  })
+  @IsEnum(['ASC', 'DESC'])
+  @IsOptional()
+  sortByDistance?: 'ASC' | 'DESC';
 }

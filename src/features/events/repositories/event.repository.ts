@@ -77,6 +77,10 @@ export class EventRepository extends Repository<Event> {
       minLng,
       maxLng,
       participantId,
+      participantToExcludeId,
+      latitude,
+      longitude,
+      sortByDistance,
     } = payload;
 
     const pageNumber = page ?? 0;
@@ -100,6 +104,29 @@ export class EventRepository extends Repository<Event> {
         'participants.email',
       ]);
 
+    // Si se proporciona latitud y longitud, calcular distancia usando fórmula de Haversine
+    if (latitude !== undefined && longitude !== undefined) {
+      // Fórmula de Haversine para calcular distancia en metros
+      // Radio de la Tierra en metros
+      const earthRadius = 6371000;
+
+      query.addSelect(
+        `(
+          ${earthRadius} * acos(
+            cos(radians(:latitude)) * 
+            cos(radians(space.latitude)) * 
+            cos(radians(space.longitude) - radians(:longitude)) + 
+            sin(radians(:latitude)) * 
+            sin(radians(space.latitude))
+          )
+        )`,
+        'distance',
+      );
+
+      query.setParameter('latitude', latitude);
+      query.setParameter('longitude', longitude);
+    }
+
     if (participantId) {
       query.andWhere(
         `EXISTS (
@@ -109,6 +136,17 @@ export class EventRepository extends Repository<Event> {
         )`,
       );
       query.setParameter('participantId', participantId);
+    }
+
+    if (participantToExcludeId) {
+      query.andWhere(
+        `NOT EXISTS (
+          SELECT 1 FROM event_participants_user epu 
+          WHERE epu."eventId" = event.id 
+          AND epu."userId" = :participantToExcludeId
+        )`,
+      );
+      query.setParameter('participantToExcludeId', participantToExcludeId);
     }
 
     if (status && status.length > 0) {
@@ -143,9 +181,34 @@ export class EventRepository extends Repository<Event> {
       query.andWhere('space.longitude <= :maxLng', { maxLng });
     }
 
-    query.orderBy('event.dateTime', 'ASC');
+    // Ordenar por distancia si se especificó, sino por fecha
+    if (latitude !== undefined && longitude !== undefined && sortByDistance) {
+      query.orderBy('distance', sortByDistance);
+    } else {
+      query.orderBy('event.dateTime', 'ASC');
+    }
 
     const [data, total] = await query.take(take).skip(skip).getManyAndCount();
+
+    // Si se calculó distancia, agregarla a cada evento
+    if (latitude !== undefined && longitude !== undefined) {
+      const rawResults = await query.take(take).skip(skip).getRawAndEntities();
+
+      const dataWithDistance = rawResults.entities.map((event, index) => {
+        const distance = rawResults.raw[index]?.distance;
+        return {
+          ...event,
+          distance: distance ? Math.round(distance) : null, // Distancia en metros, redondeada
+        };
+      });
+
+      return new PaginationDto({
+        data: dataWithDistance,
+        page: pageNumber,
+        pageSize: take,
+        total,
+      });
+    }
 
     return new PaginationDto({
       data,
