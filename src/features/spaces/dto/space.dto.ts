@@ -11,7 +11,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class SpacePaginationDto extends PaginationDto<Space> {
   @ApiProperty({ type: Space, isArray: true })
@@ -53,8 +53,47 @@ export class SpaceQueryDto extends RequestPaginationDto {
   @IsOptional()
   @Type(() => Number)
   maxLng?: number;
-}
 
+  @ApiProperty({
+    description: 'IDs de deportes',
+    type: [Number],
+    required: false,
+  })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @Type(() => Number)
+  sportIds?: number[];
+
+  @ApiProperty({
+    description: 'IDs de accesibilidad',
+    type: [Number],
+    required: false,
+  })
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @Type(() => Number)
+  accessibilityIds?: number[];
+
+  @ApiProperty({ description: 'Min rating', required: false })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  minRating?: number;
+
+  @ApiProperty({ description: 'It has future active events', required: false })
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  hasFutureEvents?: boolean;
+}
 export class CreateSpaceDto extends OmitType(Space, [
   'id',
   'createdAt',

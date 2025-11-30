@@ -10,6 +10,7 @@ import { SpacesModule } from './features/spaces/spaces.module';
 import { SportsModule } from './features/sports/sports.module';
 import { EventsModule } from './features/events/events.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AccessibilityModule } from './features/accessibility/accessibility.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SpacesModule,
     SportsModule,
     EventsModule,
+    AccessibilityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

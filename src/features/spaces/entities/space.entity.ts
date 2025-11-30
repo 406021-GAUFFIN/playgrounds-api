@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Event } from '../../events/entities/event.entity';
 import { SpaceRating } from './space-rating.entity';
+import { Accessibility } from '../../accessibility/entities/accessibility.entity';
 
 @Entity('spaces')
 export class Space extends EntityBase {
@@ -154,4 +155,26 @@ export class Space extends EntityBase {
   })
   @OneToMany(() => SpaceRating, (rating) => rating.space)
   ratings: SpaceRating[];
+
+  @ApiProperty({
+    description: 'Características de accesibilidad del espacio',
+    type: () => [Accessibility],
+  })
+  @IsArray()
+  @IsOptional()
+  @ManyToMany(() => Accessibility, (accessibility) => accessibility.spaces, {
+    eager: true,
+  })
+  @JoinTable({
+    name: 'space_accessibilities',
+    joinColumn: {
+      name: 'space_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'accessibility_id',
+      referencedColumnName: 'id',
+    },
+  })
+  accessibilities: Accessibility[];
 }
