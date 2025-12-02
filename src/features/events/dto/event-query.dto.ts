@@ -133,4 +133,13 @@ export class EventQueryDto extends RequestPaginationDto {
   @IsEnum(['ASC', 'DESC'])
   @IsOptional()
   sortByDistance?: 'ASC' | 'DESC';
+
+  @ApiProperty({
+    description: 'Minimo de participantes',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  minParticipants?: number;
 }

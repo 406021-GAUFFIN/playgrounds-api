@@ -81,6 +81,7 @@ export class EventRepository extends Repository<Event> {
       latitude,
       longitude,
       sortByDistance,
+      minParticipants,
     } = payload;
 
     const pageNumber = page ?? 0;
@@ -143,7 +144,7 @@ export class EventRepository extends Repository<Event> {
         `NOT EXISTS (
           SELECT 1 FROM event_participants_user epu 
           WHERE epu."eventId" = event.id 
-          AND epu."userId" = :participantToExcludeId
+          AND epu."userId" = :participantToExcludeId 
         )`,
       );
       query.setParameter('participantToExcludeId', participantToExcludeId);
@@ -186,6 +187,12 @@ export class EventRepository extends Repository<Event> {
       query.orderBy('distance', sortByDistance);
     } else {
       query.orderBy('event.dateTime', 'ASC');
+    }
+
+    if (minParticipants) {
+      query.andWhere('event.minParticipants <= :minParticipants', {
+        minParticipants,
+      });
     }
 
     const [data, total] = await query.take(take).skip(skip).getManyAndCount();
