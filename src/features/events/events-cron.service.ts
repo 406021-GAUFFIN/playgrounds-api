@@ -18,44 +18,47 @@ export class EventsCronService {
   }
 
   private async suspendAvailableEvents() {
+    const now = new Date();
     const oneHourFromNow = new Date();
     oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
 
-    const events = await this.eventRepository.find({
-      where: {
-        status: EventStatus.AVAILABLE,
-        dateTime: oneHourFromNow,
-      },
-      relations: ['participants', 'space', 'sport'],
-    });
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.participants', 'participants')
+      .leftJoinAndSelect('event.space', 'space')
+      .leftJoinAndSelect('event.sport', 'sport')
+      .where('event.status = :status', { status: EventStatus.AVAILABLE })
+      .andWhere('event.dateTime > :now', { now })
+      .andWhere('event.dateTime <= :oneHourFromNow', { oneHourFromNow })
+      .getMany();
 
     for (const event of events) {
-      event.status = EventStatus.SUSPENDED;
-      await this.eventRepository.save(event);
+      // Solo suspender si no tiene suficientes participantes
+      if (event.participants.length < event.minParticipants) {
+        event.status = EventStatus.SUSPENDED;
+        await this.eventRepository.save(event);
 
-      await this.emailService.sendEventSuspendedEmail(
-        event,
-        event.participants,
-      );
+        await this.emailService.sendEventSuspendedEmail(
+          event,
+          event.participants,
+        );
+      }
     }
   }
 
   private async finishPastEvents() {
     const now = new Date();
 
-    const events = await this.eventRepository.find({
-      where: [
-        {
-          status: EventStatus.CONFIRMED,
-          dateTime: now,
-        },
-        {
-          status: EventStatus.AVAILABLE,
-          dateTime: now,
-        },
-      ],
-      relations: ['participants', 'space', 'sport'],
-    });
+    const events = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.participants', 'participants')
+      .leftJoinAndSelect('event.space', 'space')
+      .leftJoinAndSelect('event.sport', 'sport')
+      .where('event.dateTime < :now', { now })
+      .andWhere('event.status IN (:...statuses)', {
+        statuses: [EventStatus.CONFIRMED, EventStatus.AVAILABLE],
+      })
+      .getMany();
 
     for (const event of events) {
       event.status = EventStatus.FINISHED;

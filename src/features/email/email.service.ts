@@ -124,7 +124,7 @@ export class EmailService {
 
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
-    const eventUrl = `${frontendUrl}/events/${event.id}`;
+    const eventUrl = `${frontendUrl}/spaces/${event.space.id}?eventId=${event.id}`;
 
     const mailOptions = {
       from: this.configService.get('GMAIL_USER'),
@@ -220,7 +220,7 @@ export class EmailService {
 
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
-    const eventUrl = `${frontendUrl}/events/${event.id}`;
+    const eventUrl = `${frontendUrl}/spaces/${event.space.id}?eventId=${event.id}`;
 
     const mailOptions = {
       from: this.configService.get('GMAIL_USER'),
@@ -320,7 +320,7 @@ export class EmailService {
 
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
-    const eventUrl = `${frontendUrl}/events/${event.id}`;
+    const eventUrl = `${frontendUrl}/spaces/${event.space.id}?eventId=${event.id}`;
 
     const mailOptions = {
       from: this.configService.get('GMAIL_USER'),
@@ -420,7 +420,7 @@ export class EmailService {
 
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
-    const eventUrl = `${frontendUrl}/events/${event.id}`;
+    const eventUrl = `${frontendUrl}/spaces/${event.space.id}?eventId=${event.id}`;
 
     const mailOptions = {
       from: this.configService.get('GMAIL_USER'),
@@ -521,7 +521,7 @@ export class EmailService {
 
     const frontendUrl =
       this.configService.get('FRONTEND_URL') || 'http://localhost:3001';
-    const eventUrl = `${frontendUrl}/events/${event.id}`;
+    const eventUrl = `${frontendUrl}/spaces/${event.space.id}?eventId=${event.id}`;
 
     const mailOptions = {
       from: this.configService.get('GMAIL_USER'),

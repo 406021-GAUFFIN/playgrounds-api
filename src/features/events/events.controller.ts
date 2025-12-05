@@ -13,6 +13,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
+import { EventsCronService } from './events-cron.service';
 import {
   ApiTags,
   ApiOperation,
@@ -29,6 +30,7 @@ import { PaginationDto } from '../../common/dto/Pagination.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { Role } from '../../common/enum/role.enum';
 import {
   EventStatsQueryDto,
@@ -46,7 +48,10 @@ import {
 @ApiBearerAuth()
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly eventsCronService: EventsCronService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Obtener eventos con filtros' })
@@ -214,5 +219,17 @@ export class EventsController {
     @Query() query: TimeSlotStatsQueryDto,
   ): Promise<TimeSlotStatsResponseDto> {
     return this.eventsService.getTimeSlotStats(query);
+  }
+
+  @Public()
+  @Post('cron/run')
+  @ApiOperation({ summary: 'Ejecutar manualmente el cron de eventos' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cron ejecutado exitosamente',
+  })
+  async runCronManually() {
+    await this.eventsCronService.handleEventStatusUpdates();
+    return { message: 'Cron ejecutado exitosamente' };
   }
 }

@@ -111,21 +111,19 @@ export class EventRepository extends Repository<Event> {
       // Radio de la Tierra en metros
       const earthRadius = 6371000;
 
+      // Usar valores directos en lugar de parámetros para evitar problemas de interpolación
       query.addSelect(
         `(
           ${earthRadius} * acos(
-            cos(radians(:latitude)) * 
+            cos(radians(${latitude})) * 
             cos(radians(space.latitude)) * 
-            cos(radians(space.longitude) - radians(:longitude)) + 
-            sin(radians(:latitude)) * 
+            cos(radians(space.longitude) - radians(${longitude})) + 
+            sin(radians(${latitude})) * 
             sin(radians(space.latitude))
           )
         )`,
         'distance',
       );
-
-      query.setParameter('latitude', latitude);
-      query.setParameter('longitude', longitude);
     }
 
     if (participantId) {
@@ -195,14 +193,27 @@ export class EventRepository extends Repository<Event> {
       });
     }
 
-    const [data, total] = await query.take(take).skip(skip).getManyAndCount();
-
-    // Si se calculó distancia, agregarla a cada evento
+    // Si se calculó distancia, usar getRawAndEntities para obtener la distancia calculada
     if (latitude !== undefined && longitude !== undefined) {
+      // Obtener el total sin paginación
+      const total = await query.getCount();
+
       const rawResults = await query.take(take).skip(skip).getRawAndEntities();
 
-      const dataWithDistance = rawResults.entities.map((event, index) => {
-        const distance = rawResults.raw[index]?.distance;
+      // Crear un mapa de distancias por ID de evento
+      // rawResults.raw puede tener múltiples filas por evento (debido a los joins con participants)
+      // pero la distancia es la misma para todas las filas del mismo evento
+      const distanceMap = new Map<number, number>();
+      rawResults.raw.forEach((raw) => {
+        const eventId = raw.event_id;
+        const distance = raw.distance;
+        if (eventId && distance !== undefined && !distanceMap.has(eventId)) {
+          distanceMap.set(eventId, distance);
+        }
+      });
+
+      const dataWithDistance = rawResults.entities.map((event) => {
+        const distance = distanceMap.get(event.id);
         return {
           ...event,
           distance: distance ? Math.round(distance) : null, // Distancia en metros, redondeada
@@ -216,6 +227,8 @@ export class EventRepository extends Repository<Event> {
         total,
       });
     }
+
+    const [data, total] = await query.take(take).skip(skip).getManyAndCount();
 
     return new PaginationDto({
       data,
